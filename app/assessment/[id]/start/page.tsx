@@ -44,7 +44,7 @@ const loadHiringProcess = async () => {
       } finally {
         setIsLoading(false); // ✅ Only here
       }
-    }, 5000); // Simulated loading delay
+    }, 2000); // Simulated loading delay
   } catch (error) {
     console.error('Failed to load hiring process:', error);
   }

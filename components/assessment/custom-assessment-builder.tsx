@@ -1,597 +1,284 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Plus, X, Play, Clock, Target, Loader2 } from 'lucide-react';
-import { saveCustomAssessment } from '@/lib/mock-data';
-import { useAssessmentStore } from '@/lib/stores/assessment-store';
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Trash2 } from "lucide-react"
+import { useAssessmentStore } from "@/lib/stores/assessment-store"
+import { toast } from "sonner"
 
 interface CustomAssessmentBuilderProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAssessmentCreated?: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAssessmentCreated: () => void
+  editingAssessment?: any
 }
 
-interface Round {
-  id: number;
-  type: string;
-  duration: number;
-  difficulty: string;
-  topics: string[];
-  description: string;
-}
+const ROUND_TYPES = [
+  { value: "APTITUDE", label: "Aptitude Test" },
+  { value: "COMMUNICATION", label: "Communication" },
+  { value: "CODING", label: "Coding Challenge" },
+  { value: "TECHNICAL", label: "Technical Interview" },
+  { value: "BEHAVIORAL", label: "Behavioral Interview" },
+  { value: "SYSTEM_DESIGN", label: "System Design" },
+]
 
 export function CustomAssessmentBuilder({
   open,
   onOpenChange,
   onAssessmentCreated,
+  editingAssessment,
 }: CustomAssessmentBuilderProps) {
-  const { createCustomAssessment } = useAssessmentStore();
-  const [assessmentName, setAssessmentName] = useState('');
-  const [description, setDescription] = useState('');
-  const [difficulty, setDifficulty] = useState('medium');
-  const [rounds, setRounds] = useState<Round[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { createCustomAssessment, updateCustomAssessment, deleteCustomAssessment, isLoading } = useAssessmentStore()
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    difficulty: "MEDIUM",
+    rounds: [] as any[],
+  })
 
-  const roundTypes = [
-    {
-      value: 'screening',
-      label: 'Screening Round',
-      duration: 15,
-      description: 'Skills assessment and eligibility check',
-    },
-    {
-      value: 'aptitude',
-      label: 'Aptitude Test',
-      duration: 30,
-      description: 'Logical reasoning and analytical thinking',
-    },
-    {
-      value: 'communication',
-      label: 'Communication Round',
-      duration: 25,
-      description: 'Verbal and written communication skills',
-    },
-    {
-      value: 'coding',
-      label: 'Coding Challenge',
-      duration: 45,
-      description: 'Programming problems and algorithms',
-    },
-    {
-      value: 'technical',
-      label: 'Technical Interview',
-      duration: 30,
-      description: 'In-depth technical discussion',
-    },
-    {
-      value: 'behavioral',
-      label: 'Behavioral Interview',
-      duration: 25,
-      description: 'Soft skills and cultural fit',
-    },
-    {
-      value: 'system_design',
-      label: 'System Design',
-      duration: 40,
-      description: 'Architecture and design thinking',
-    },
-  ];
+  useEffect(() => {
+    if (editingAssessment) {
+      setFormData({
+        name: editingAssessment.name,
+        description: editingAssessment.description,
+        difficulty: editingAssessment.difficulty,
+        rounds: editingAssessment.rounds.map((round: any) => ({
+          roundType: round.roundType,
+          name: round.name,
+          description: round.description || "",
+          duration: round.duration,
+          sequence: round.sequence,
+          config: round.config || {},
+        })),
+      })
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        difficulty: "MEDIUM",
+        rounds: [],
+      })
+    }
+  }, [editingAssessment, open])
 
   const addRound = () => {
-    setRounds([
-      ...rounds,
-      {
-        id: Date.now(),
-        type: '',
-        duration: 30,
-        difficulty: 'medium',
-        topics: [],
-        description: '',
-      },
-    ]);
-  };
-
-  const removeRound = (id: number) => {
-    setRounds(rounds.filter((round) => round.id !== id));
-  };
-
-  const updateRound = (id: number, field: keyof Round, value: any) => {
-    setRounds(
-      rounds.map((round) =>
-        round.id === id ? { ...round, [field]: value } : round
-      )
-    );
-  };
-
-  const getTotalDuration = () => {
-    return rounds.reduce((sum, round) => sum + (round.duration || 0), 0);
-  };
-
-  const saveAssessment = async () => {
-    if (isSaving) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const newAssessment = {
-        name: assessmentName,
-        description,
-        difficulty: difficulty.toUpperCase() as 'EASY' | 'MEDIUM' | 'HARD',
-        rounds: rounds.map((round, index) => ({
-          roundType: 'SCREENING',
-          name:
-            roundTypes.find((rt) => rt.value === round.type)?.label ||
-            `Round ${index + 1}`,
-          description:
-            round.description ||
-            roundTypes.find((rt) => rt.value === round.type)?.description ||
-            '',
-          duration: round.duration || 30,
-          sequence: index + 1,
-          config: {
-            topics: round.topics || [],
-            difficulty: round.difficulty || 'medium',
-          },
-        })),
-      };
-
-      const savedAssessment = await createCustomAssessment(newAssessment);
-
-      if (onAssessmentCreated) {
-        await onAssessmentCreated();
-      }
-
-      // Reset form
-      setAssessmentName('');
-      setDescription('');
-      setDifficulty('medium');
-      setRounds([]);
-      setShowPreview(false);
-
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to save assessment:', error);
-    } finally {
-      setIsSaving(false);
+    const newRound = {
+      roundType: "APTITUDE",
+      name: "New Round",
+      description: "",
+      duration: 30,
+      sequence: formData.rounds.length + 1,
+      config: {},
     }
-  };
+    setFormData((prev) => ({
+      ...prev,
+      rounds: [...prev.rounds, newRound],
+    }))
+  }
 
-  const previewAssessment = () => {
-    setShowPreview(true);
-  };
+  const updateRound = (index: number, field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      rounds: prev.rounds.map((round, i) => (i === index ? { ...round, [field]: value } : round)),
+    }))
+  }
 
-  const isFormValid = assessmentName.trim() && description.trim() && rounds.length > 0 && rounds.every(round => round.type);
+  const removeRound = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      rounds: prev.rounds.filter((_, i) => i !== index).map((round, i) => ({ ...round, sequence: i + 1 })),
+    }))
+  }
 
-  if (showPreview) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Assessment Preview</DialogTitle>
-          </DialogHeader>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {assessmentName}
-                  <Badge variant="outline" className="capitalize">
-                    {difficulty}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">{description}</p>
+    if (formData.rounds.length === 0) {
+      toast.error("Please add at least one round")
+      return
+    }
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <Target className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-blue-600">
-                      {rounds.length}
-                    </div>
-                    <div className="text-sm text-gray-600">Total Rounds</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <Clock className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-600">
-                      {getTotalDuration()}
-                    </div>
-                    <div className="text-sm text-gray-600">Minutes</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600 capitalize">
-                      {difficulty}
-                    </div>
-                    <div className="text-sm text-gray-600">Difficulty</div>
-                  </div>
-                </div>
+    const totalDuration = formData.rounds.reduce((sum, round) => sum + round.duration, 0)
+    const assessmentData = {
+      ...formData,
+      totalDuration,
+      roundCount: formData.rounds.length,
+    }
 
-                <div className="space-y-3">
-                  <h4 className="font-semibold">Assessment Structure:</h4>
-                  {rounds.map((round, index) => {
-                    const roundType = roundTypes.find(
-                      (rt) => rt.value === round.type
-                    );
-                    return (
-                      <div
-                        key={round.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <h5 className="font-medium">{roundType?.label || round.type}</h5>
-                            <p className="text-sm text-gray-600">
-                              {round.description || roundType?.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">
-                            {round.duration} min
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="text-xs capitalize"
-                          >
-                            {round.difficulty}
-                          </Badge>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowPreview(false)}
-                disabled={isSaving}
-              >
-                Back to Edit
-              </Button>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={saveAssessment}
-                  disabled={isSaving}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Create & Start Assessment
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+    try {
+      if (editingAssessment) {
+        await updateCustomAssessment(editingAssessment.id, assessmentData)
+        // Delete and redirect as requested
+        await deleteCustomAssessment(editingAssessment.id)
+        window.location.href = "/dashboard"
+      } else {
+        await createCustomAssessment(assessmentData)
+      }
+      onAssessmentCreated()
+    } catch (error) {
+      console.error("Failed to save assessment:", error)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Custom Assessment</DialogTitle>
+          <DialogTitle>{editingAssessment ? "Edit" : "Create"} Custom Assessment</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Assessment Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Assessment Name *</Label>
-                <Input
-                  id="name"
-                  value={assessmentName}
-                  onChange={(e) => setAssessmentName(e.target.value)}
-                  placeholder="e.g., Frontend Developer Challenge"
-                  disabled={isSaving}
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Assessment Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Full Stack Developer Assessment"
+                required
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what this assessment covers and its objectives..."
-                  rows={3}
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="difficulty">Overall Difficulty</Label>
-                <Select 
-                  value={difficulty} 
-                  onValueChange={setDifficulty}
-                  disabled={isSaving}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="easy">
-                      Easy - Entry level positions
-                    </SelectItem>
-                    <SelectItem value="medium">
-                      Medium - Mid-level positions
-                    </SelectItem>
-                    <SelectItem value="hard">
-                      Hard - Senior level positions
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Rounds Configuration */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-lg">Assessment Rounds</CardTitle>
-                <p className="text-sm text-gray-600">
-                  Add and configure the rounds for your assessment
-                </p>
-              </div>
-              <Button 
-                onClick={addRound} 
-                size="sm"
-                disabled={isSaving}
+            <div className="space-y-2">
+              <Label htmlFor="difficulty">Difficulty</Label>
+              <Select
+                value={formData.difficulty}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, difficulty: value }))}
               >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EASY">Easy</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HARD">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Describe what this assessment evaluates..."
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Assessment Rounds</h3>
+              <Button type="button" onClick={addRound} size="sm">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Round
               </Button>
-            </CardHeader>
-            <CardContent>
-              {rounds.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                  <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">
-                    No rounds added yet
-                  </p>
-                  <p className="text-sm">
-                    Click "Add Round" to start building your assessment
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {rounds.map((round, index) => {
-                    const selectedRoundType = roundTypes.find(
-                      (rt) => rt.value === round.type
-                    );
-                    return (
-                      <div
-                        key={round.id}
-                        className="border rounded-lg p-4 space-y-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold flex items-center justify-center">
-                              {index + 1}
-                            </span>
-                            Round {index + 1}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeRound(round.id)}
-                            disabled={isSaving}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+            </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Round Type *</Label>
-                       <Select
-  value={round.type}
-  onValueChange={(value) => {
-    updateRound(round.id, 'type', value);
-    const roundType = roundTypes.find(rt => rt.value === value);
-    if (roundType) {
-      updateRound(round.id, 'duration', roundType.duration);
-    }
-  }}
-  disabled={isSaving}
->
-  <SelectTrigger>
-    <SelectValue placeholder="Select round type" />
-  </SelectTrigger>
-  <SelectContent>
-    {roundTypes.map((type) => (
-      <SelectItem key={type.value} value={type.value}>
-        <div className="flex flex-col">
-          <span className="font-medium">{type.label}</span>
-          <span className="text-xs text-gray-500">{type.description}</span>
-        </div>
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-                            {selectedRoundType && (
-                              <p className="text-xs text-gray-600">
-                                {selectedRoundType.description}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Duration (minutes)</Label>
-                            <Input
-                              type="number"
-                              value={round.duration}
-                              onChange={(e) =>
-                                updateRound(
-                                  round.id,
-                                  'duration',
-                                  parseInt(e.target.value) || 0
-                                )
-                              }
-                              min="5"
-                              max="180"
-                              disabled={isSaving}
-                            />
-                          </div>
-                        </div>
-
+            {formData.rounds.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-gray-500">
+                  <p>No rounds added yet. Click "Add Round" to get started.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {formData.rounds.map((round, index) => (
+                  <Card key={index}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Round {index + 1}</CardTitle>
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeRound(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label>Round Difficulty</Label>
+                          <Label>Round Type</Label>
                           <Select
-                            value={round.difficulty}
-                            onValueChange={(value) =>
-                              updateRound(round.id, 'difficulty', value)
-                            }
-                            disabled={isSaving}
+                            value={round.roundType}
+                            onValueChange={(value) => updateRound(index, "roundType", value)}
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="easy">Easy</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="hard">Hard</SelectItem>
+                              {ROUND_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Focus Topics (comma-separated)</Label>
+                          <Label>Round Name</Label>
                           <Input
-                            placeholder="e.g., JavaScript, React, Algorithms, Problem Solving"
-                            value={round.topics.join(', ')}
-                            onChange={(e) =>
-                              updateRound(
-                                round.id,
-                                'topics',
-                                e.target.value
-                                  .split(',')
-                                  .map((t) => t.trim())
-                                  .filter((t) => t)
-                              )
-                            }
-                            disabled={isSaving}
+                            value={round.name}
+                            onChange={(e) => updateRound(index, "name", e.target.value)}
+                            placeholder="e.g., Technical Interview"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Custom Description (optional)</Label>
-                          <Textarea
-                            placeholder="Override default description for this round..."
-                            value={round.description}
-                            onChange={(e) =>
-                              updateRound(round.id, 'description', e.target.value)
-                            }
-                            disabled={isSaving}
-                            rows={2}
+                          <Label>Duration (minutes)</Label>
+                          <Input
+                            type="number"
+                            value={round.duration}
+                            onChange={(e) => updateRound(index, "duration", Number.parseInt(e.target.value) || 0)}
+                            min="1"
+                            max="180"
                           />
                         </div>
                       </div>
-                    );
-                  })}
 
-                  {rounds.length > 0 && (
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">
-                          Total Assessment Duration:
-                        </span>
-                        <span className="font-bold text-blue-600">
-                          {getTotalDuration()} minutes
-                        </span>
+                      <div className="space-y-2">
+                        <Label>Description (Optional)</Label>
+                        <Textarea
+                          value={round.description}
+                          onChange={(e) => updateRound(index, "description", e.target.value)}
+                          placeholder="Describe what this round evaluates..."
+                          rows={2}
+                        />
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-between gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving}
-            >
+            {formData.rounds.length > 0 && (
+              <div className="flex items-center gap-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <span>Total Rounds: {formData.rounds.length}</span>
+                <span>Total Duration: {formData.rounds.reduce((sum, round) => sum + round.duration, 0)} minutes</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={previewAssessment}
-                disabled={!isFormValid || isSaving}
-              >
-                Preview Assessment
-              </Button>
-              <Button
-                onClick={saveAssessment}
-                disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Create & Start
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : editingAssessment ? "Update Assessment" : "Create Assessment"}
+            </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

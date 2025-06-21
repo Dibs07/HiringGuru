@@ -10,6 +10,7 @@ import { CommunicationRound } from './rounds/communication-round';
 import { CodingRound } from './rounds/coding-round';
 import { InterviewRound } from './rounds/interview-round';
 import { RoundResults } from './round-results';
+import { TechnicalRound } from './rounds/technical-round';
 
 interface AssessmentInterfaceProps {
   hiringProcess: any;
@@ -32,14 +33,13 @@ export function AssessmentInterface({
     setRoundResult(result);
     setRoundState('completed');
   };
-
   const handleNextRound = () => {
     // Navigate to next round or complete assessment
     const nextRoundSequence = currentRound.sequence + 1;
     const totalRounds = hiringProcess.configSnapshot?.roundCount || 0;
 
     if (nextRoundSequence <= totalRounds) {
-      window.location.href = `/assessment/${hiringProcess.id}/round/${nextRoundSequence}`;
+      currentRound.sequence = nextRoundSequence;
     } else {
       window.location.href = `/assessment/${hiringProcess.id}/complete`;
     }
@@ -59,13 +59,12 @@ export function AssessmentInterface({
     }
 
     const roundProps = {
+      roundId: currentRound.id,
       onComplete: handleRoundComplete,
       duration: currentRound.duration,
     };
 
     switch (currentRound.roundType) {
-      case 'SCREENING':
-        return <ScreeningRound {...roundProps} />;
       case 'APTITUDE':
         return <AptitudeRound {...roundProps} />;
       case 'COMMUNICATION':
@@ -73,7 +72,7 @@ export function AssessmentInterface({
       case 'CODING':
         return <CodingRound {...roundProps} />;
       case 'TECHNICAL':
-        return <InterviewRound {...roundProps} />;
+        return <TechnicalRound {...roundProps} />;
       case 'BEHAVIORAL':
         return <InterviewRound {...roundProps} />;
       case 'SYSTEM_DESIGN':

@@ -1,112 +1,127 @@
-import { toast } from "sonner";
-
 class ApiService {
-  private baseUrl =
-    process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:5000';
+  private baseUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:5000"
 
   async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = `${this.baseUrl}${endpoint}`
     const response = await fetch(url, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
-      credentials: 'include', // Include cookies
+      credentials: "include",
       ...options,
-    });
+    })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      toast.error(
-        errorData.message || `API Error: ${response.statusText}`
-      );
-      return;
+      const errorData = await response.json().catch(() => ({}))
+      const error = new Error(errorData.message || `API Error: ${response.statusText}`)
+      ;(error as any).status = response.status
+      ;(error as any).data = errorData
+      throw error
     }
 
-    return response.json();
+    return response.json()
   }
 
   // Auth endpoints
   async login(provider: string) {
-    return this.request('/api/user/auth/login', {
-      method: 'POST',
+    return this.request("/api/user/auth/login", {
+      method: "POST",
       body: JSON.stringify({ provider }),
-    });
+    })
   }
 
   async logout() {
-    return this.request('/api/user/auth/logout', {
-      method: 'POST',
-    });
+    return this.request("/api/user/auth/logout", {
+      method: "POST",
+    })
   }
 
   async getProfile() {
-    return this.request('/api/user/profile');
+    return this.request("/api/user/profile")
   }
 
   // Hiring Process endpoints
   async getHiringProcesses() {
-    return this.request('/api/hiring-processes');
+    return this.request("/api/hiring-processes")
   }
 
   async getHiringProcess(id: string) {
-    return this.request(`/api/hiring-processes/${id}`);
+    return this.request(`/api/hiring-processes/${id}`)
   }
 
-  async startHiringProcess(
-    assessmentType: 'PREDEFINED' | 'CUSTOM',
-    assessmentId: string
-  ) {
+  async startHiringProcess(assessmentType: "PREDEFINED" | "CUSTOM", assessmentId: string) {
     const payload = {
       assessmentType,
-      ...(assessmentType === 'PREDEFINED'
+      ...(assessmentType === "PREDEFINED"
         ? { predefinedAssessmentId: assessmentId }
         : { customAssessmentId: assessmentId }),
-    };
+    }
 
-    return this.request('/api/hiring-processes/start', {
-      method: 'POST',
+    return this.request("/api/hiring-processes/start", {
+      method: "POST",
       body: JSON.stringify(payload),
-    });
+    })
+  }
+
+  async terminateAssessment(id: string) {
+    return this.request(`/api/hiring-processes/${id}`, {
+      method: "DELETE",
+    })
   }
 
   // Custom Assessment endpoints
   async getCustomAssessments() {
-    return this.request('/api/custom-assessments');
+    return this.request("/api/custom-assessments")
   }
 
   async getCustomAssessment(id: string) {
-    return this.request(`/api/custom-assessments/${id}`);
+    return this.request(`/api/custom-assessments/${id}`)
   }
 
   async createCustomAssessment(data: any) {
-    return this.request('/api/custom-assessments/', {
-      method: 'POST',
+    return this.request("/api/custom-assessments/create", {
+      method: "POST",
       body: JSON.stringify(data),
-    });
+    })
   }
 
   async updateCustomAssessment(id: string, data: any) {
     return this.request(`/api/custom-assessments/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
-    });
+    })
   }
 
   async deleteCustomAssessment(id: string) {
     return this.request(`/api/custom-assessments/${id}`, {
-      method: 'DELETE',
-    });
+      method: "DELETE",
+    })
   }
 
   // Predefined Assessment endpoints
   async getPredefinedAssessments() {
-    return this.request('/api/predefined-assessments');
+    return this.request("/api/predefined-assessments")
   }
 
   async getPredefinedAssessment(id: string) {
-    return this.request(`/api/predefined-assessments/${id}`);
+    return this.request(`/api/predefined-assessments/${id}`)
+  }
+
+  // Round endpoints
+  async generateQuestions(payload: any) {
+    return this.request("/api/rounds/generate-questions", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async submitAnswers(payload: any) {
+    return this.request("/api/rounds/submit-answers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
   }
 }
 
-export const apiService = new ApiService();
+export const apiService = new ApiService()

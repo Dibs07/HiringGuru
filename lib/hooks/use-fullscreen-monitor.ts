@@ -1,87 +1,58 @@
-'use client';
+"use client"
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from "react"
 
-interface UseFullscreenMonitorProps {
-  onExitAttempt: () => void;
-  maxAttempts?: number;
-  onMaxAttemptsReached: () => void;
+interface FullscreenMonitorOptions {
+  onExitAttempt: () => void
+  maxAttempts: number
+  onMaxAttemptsReached: () => void
+  onTerminate?: () => void
 }
 
 export function useFullscreenMonitor({
   onExitAttempt,
-  maxAttempts = 3,
+  maxAttempts,
   onMaxAttemptsReached,
-}: UseFullscreenMonitorProps) {
-  const exitAttemptsRef = useRef(0);
-  const isInAssessmentRef = useRef(true);
+  onTerminate,
+}: FullscreenMonitorOptions) {
+  const attemptsRef = useRef(0)
+  const isMonitoringRef = useRef(false)
+
+  const handleFullscreenChange = useCallback(() => {
+    if (!isMonitoringRef.current) return
+
+    if (!document.fullscreenElement) {
+      attemptsRef.current += 1
+      onExitAttempt()
+
+      if (attemptsRef.current >= maxAttempts) {
+        onMaxAttemptsReached()
+        if (onTerminate) {
+          onTerminate()
+        }
+      }
+    }
+  }, [onExitAttempt, maxAttempts, onMaxAttemptsReached, onTerminate])
+
+  const startMonitoring = useCallback(() => {
+    isMonitoringRef.current = true
+    document.addEventListener("fullscreenchange", handleFullscreenChange)
+  }, [handleFullscreenChange])
+
+  const stopMonitoring = useCallback(() => {
+    isMonitoringRef.current = false
+    document.removeEventListener("fullscreenchange", handleFullscreenChange)
+  }, [handleFullscreenChange])
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const handleVisibilityChange = () => {
-      if (!isInAssessmentRef.current) return;
-
-      if (document.hidden) {
-        exitAttemptsRef.current += 1;
-        onExitAttempt();
-
-        if (exitAttemptsRef.current >= maxAttempts) {
-          onMaxAttemptsReached();
-          return;
-        }
-      }
-    };
-
-    const handleFullscreenChange = () => {
-      if (!isInAssessmentRef.current) return;
-
-      if (!document.fullscreenElement) {
-        exitAttemptsRef.current += 1;
-        onExitAttempt();
-
-        if (exitAttemptsRef.current >= maxAttempts) {
-          onMaxAttemptsReached();
-          return;
-        }
-
-        // Try to re-enter fullscreen after a short delay
-        timeoutId = setTimeout(() => {
-          document.documentElement.requestFullscreen().catch(console.error);
-        }, 1000);
-      }
-    };
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!isInAssessmentRef.current) return;
-
-      exitAttemptsRef.current += 1;
-      if (exitAttemptsRef.current >= maxAttempts) {
-        onMaxAttemptsReached();
-      }
-
-      e.preventDefault();
-      e.returnValue = 'Are you sure you want to leave the assessment?';
-      return e.returnValue;
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [onExitAttempt, maxAttempts, onMaxAttemptsReached]);
+      stopMonitoring()
+    }
+  }, [stopMonitoring])
 
-  const stopMonitoring = () => {
-    isInAssessmentRef.current = false;
-  };
-
-  const getExitAttempts = () => exitAttemptsRef.current;
-
-  return { stopMonitoring, getExitAttempts };
+  return {
+    startMonitoring,
+    stopMonitoring,
+    currentAttempts: attemptsRef.current,
+  }
 }

@@ -46,7 +46,7 @@ export function CameraPermission({
       <Card className="max-w-2xl w-full">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">
-            {assessment.company} - {assessment.position}
+            {assessment.configSnapshot.assessmentName}
           </CardTitle>
           <p className="text-gray-600">Assessment Setup</p>
         </CardHeader>
