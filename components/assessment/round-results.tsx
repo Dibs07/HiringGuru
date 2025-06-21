@@ -3,194 +3,210 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Clock, Target, TrendingUp, AlertCircle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { CheckCircle, XCircle, Clock, MessageSquare, Trophy, AlertTriangle } from "lucide-react"
 
 interface RoundResultsProps {
   result: any
   onNext: () => void
+  onBack?: () => void
   isLastRound: boolean
 }
 
-export function RoundResults({ result, onNext, isLastRound }: RoundResultsProps) {
+export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResultsProps) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600"
     if (score >= 60) return "text-yellow-600"
     return "text-red-600"
   }
 
-  const getScoreBadgeColor = (qualified: boolean) => {
-    return qualified ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+  const getScoreBadgeColor = (score: number) => {
+    if (score >= 80) return "bg-green-100 text-green-800"
+    if (score >= 60) return "bg-yellow-100 text-yellow-800"
+    return "bg-red-100 text-red-800"
   }
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Main Result Card */}
-      <Card>
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            {result.qualified ? (
-              <CheckCircle className="h-16 w-16 text-green-600" />
-            ) : (
-              <XCircle className="h-16 w-16 text-red-600" />
-            )}
-          </div>
-          <CardTitle className="text-2xl">
-            {result.qualified ? "Round Completed Successfully!" : "Round Completed"}
-          </CardTitle>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <Badge className={getScoreBadgeColor(result.qualified)}>
-              {result.qualified ? "Qualified" : "Not Qualified"}
-            </Badge>
-            <div className={`text-3xl font-bold ${getScoreColor(result.score)}`}>
-              {result.overallScore || `${result.score}%`}
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+  const renderInterviewResults = () => {
+    if (!["communication", "technical", "behavioral", "system_design"].includes(result.type)) {
+      return null
+    }
 
-      {/* Detailed Results */}
-      {result.feedback && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Strengths */}
-          {result.feedback.strengths && result.feedback.strengths.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-600">
-                  <TrendingUp className="h-5 w-5" />
-                  Strengths
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {result.feedback.strengths.map((strength: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{strength}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Areas for Improvement */}
-          {result.feedback.improvements && result.feedback.improvements.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-600">
-                  <Target className="h-5 w-5" />
-                  Areas for Improvement
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {result.feedback.improvements.map((improvement: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{improvement}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <MessageSquare className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-600">{result.questionsAnswered}</div>
+            <div className="text-sm text-gray-600">Questions Answered</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <Clock className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-purple-600">{result.totalQuestions}</div>
+            <div className="text-sm text-gray-600">Total Questions</div>
+          </div>
         </div>
-      )}
 
-      {/* Detailed Feedback */}
-      {result.feedback?.detailedFeedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Detailed Analysis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="whitespace-pre-line text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
-              {result.feedback.detailedFeedback}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Question-wise Results */}
-      {result.detailedResults && result.detailedResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Question-wise Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {result.detailedResults.map((questionResult: any, index: number) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-sm">Question {index + 1}</h4>
-                    {questionResult.is_correct ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
-                    )}
+        {result.conversation && result.conversation.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium">Interview Highlights:</h4>
+            <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-gray-50 rounded-lg">
+              {result.conversation
+                .filter((msg: any) => msg.type === "ai")
+                .slice(0, 3)
+                .map((msg: any, index: number) => (
+                  <div key={index} className="text-sm text-gray-700 p-2 bg-white rounded border-l-4 border-blue-400">
+                    <strong>Q{index + 1}:</strong> {msg.text.substring(0, 100)}
+                    {msg.text.length > 100 && "..."}
                   </div>
-                  <p className="text-sm text-gray-700 mb-3">{questionResult.question}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderDetailedResults = () => {
+    if (!result.detailedResults) return null
+
+    return (
+      <div className="space-y-4">
+        <h4 className="font-medium">Question-wise Results:</h4>
+        <div className="space-y-3 max-h-60 overflow-y-auto">
+          {result.detailedResults.map((item: any, index: number) => (
+            <div key={index} className="p-3 border rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="mt-1">
+                  {item.is_correct ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium">{item.question}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="font-medium">Your Answer: </span>
-                      <span className={questionResult.is_correct ? "text-green-600" : "text-red-600"}>
-                        {questionResult.user_answer}
-                      </span>
+                      <span className="text-gray-500">Your answer: </span>
+                      <span className={item.is_correct ? "text-green-600" : "text-red-600"}>{item.user_answer}</span>
                     </div>
                     <div>
-                      <span className="font-medium">Correct Answer: </span>
-                      <span className="text-green-600">{questionResult.correct_answer}</span>
+                      <span className="text-gray-500">Correct answer: </span>
+                      <span className="text-green-600">{item.correct_answer}</span>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderFeedback = () => {
+    if (!result.feedback) return null
+
+    const feedback = typeof result.feedback === "string" ? { detailedFeedback: result.feedback } : result.feedback
+
+    return (
+      <div className="space-y-4">
+        <h4 className="font-medium">Performance Feedback:</h4>
+
+        {feedback.strengths && (
+          <div className="p-3 bg-green-50 rounded-lg">
+            <h5 className="font-medium text-green-800 mb-2">Strengths:</h5>
+            <ul className="text-sm text-green-700 space-y-1">
+              {feedback.strengths.map((strength: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  {strength}
+                </li>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Performance Statistics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{result.totalQuestions || 0}</div>
-              <div className="text-sm text-gray-600">Total Questions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{result.answeredQuestions || 0}</div>
-              <div className="text-sm text-gray-600">Answered</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {result.detailedResults?.filter((r: any) => r.is_correct).length || 0}
-              </div>
-              <div className="text-sm text-gray-600">Correct</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
-                {Math.floor((result.timeSpent || 0) / 60)}m {(result.timeSpent || 0) % 60}s
-              </div>
-              <div className="text-sm text-gray-600">Time Spent</div>
-            </div>
+            </ul>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {/* Action Button */}
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <Button onClick={onNext} size="lg" className="px-8">
-            {isLastRound ? "Complete Assessment" : "Continue to Next Round"}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+        {feedback.improvements && (
+          <div className="p-3 bg-yellow-50 rounded-lg">
+            <h5 className="font-medium text-yellow-800 mb-2">Areas for Improvement:</h5>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              {feedback.improvements.map((improvement: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  {improvement}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {feedback.detailedFeedback && (
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <h5 className="font-medium text-blue-800 mb-2">Detailed Analysis:</h5>
+            <p className="text-sm text-blue-700 whitespace-pre-line">{feedback.detailedFeedback}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <Card className="max-w-4xl mx-auto">
+      <CardHeader className="text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Trophy className="h-8 w-8 text-yellow-600" />
+          <CardTitle className="text-2xl">Round Completed!</CardTitle>
+        </div>
+        <p className="text-gray-600">{result.type.charAt(0).toUpperCase() + result.type.slice(1)} Round Results</p>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Score Overview */}
+        <div className="text-center space-y-4">
+          <div className="space-y-2">
+            <div className={`text-6xl font-bold ${getScoreColor(result.score || 0)}`}>
+              {Math.round(result.score || 0)}%
+            </div>
+            <Badge className={getScoreBadgeColor(result.score || 0)}>
+              {result.qualified ? "Qualified" : "Needs Improvement"}
+            </Badge>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Performance</span>
+              <span>{Math.round(result.score || 0)}%</span>
+            </div>
+            <Progress value={result.score || 0} className="h-3" />
+          </div>
+        </div>
+
+        {/* Type-specific Results */}
+        {renderInterviewResults()}
+        {renderDetailedResults()}
+        {renderFeedback()}
+
+        {/* User Feedback */}
+        {result.userFeedback && (
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium mb-2">Your Feedback:</h4>
+            <p className="text-sm text-gray-700">{result.userFeedback}</p>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-between pt-6">
+          {onBack && (
+            <Button variant="outline" onClick={onBack}>
+              Back to Rounds
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button onClick={onNext}>{isLastRound ? "Complete Assessment" : "Next Round"}</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

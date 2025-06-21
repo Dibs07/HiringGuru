@@ -135,7 +135,7 @@ export function TechnicalRound({
       const submissionPayload = {
         roundId,
         answers: Object.entries(answers).map(([questionIndex, answer]) => ({
-          questionId: questions[Number(questionIndex)].id,
+          questionId: questions[Number(questionIndex)].id.toString(),
           answer: answer.selectedOption,
           timeSpent: answer.timeSpent,
         })),

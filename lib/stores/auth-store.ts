@@ -17,6 +17,7 @@ interface User {
     status: string;
     expiresAt: string;
   };
+  profileCompleted: boolean;
 }
 
 interface AuthState {

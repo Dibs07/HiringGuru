@@ -1,5 +1,6 @@
 class ApiService {
   private baseUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:5000"
+  private aiBaseUrl = process.env.NEXT_PUBLIC_AI_API_URL || "http://localhost:8000"
 
   async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
@@ -15,6 +16,27 @@ class ApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       const error = new Error(errorData.message || `API Error: ${response.statusText}`)
+      ;(error as any).status = response.status
+      ;(error as any).data = errorData
+      throw error
+    }
+
+    return response.json()
+  }
+
+  async aiRequest(endpoint: string, options: RequestInit = {}) {
+    const url = `${this.aiBaseUrl}${endpoint}`
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const error = new Error(errorData.message || `AI API Error: ${response.statusText}`)
       ;(error as any).status = response.status
       ;(error as any).data = errorData
       throw error
@@ -39,6 +61,18 @@ class ApiService {
 
   async getProfile() {
     return this.request("/api/user/profile")
+  }
+
+  // GitHub Integration
+  async getGitHubProfile(username: string) {
+    return this.request(`/api/user/analysis/${username}`)
+  }
+
+  async submitUserAnalysis(data: any) {
+    return this.request("/api/user/analysis", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
   // Hiring Process endpoints
@@ -121,6 +155,25 @@ class ApiService {
       method: "POST",
       body: JSON.stringify(payload),
     })
+  }
+
+  // AI Interview endpoints
+  async startInterview(payload: { user_name: string; user_role: string; round_id: string }) {
+    return this.aiRequest("/greeting", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async getAIResponse(payload: { session_id: string; question_number: number; user_transcript: string }) {
+    return this.aiRequest("/ai-response", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async getConversation(sessionId: string) {
+    return this.aiRequest(`/conversation/${sessionId}`)
   }
 }
 
