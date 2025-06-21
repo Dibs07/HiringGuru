@@ -21,29 +21,35 @@ export default function AssessmentStartPage() {
     loadHiringProcess();
   }, [params.id]);
 
-  const loadHiringProcess = async () => {
-    try {
-      setIsLoading(true);
-      const process = await getHiringProcess(params.id as string);
-      setHiringProcess(process);
+const loadHiringProcess = async () => {
+  try {
+    setIsLoading(true);
 
-      // Find current round
-      const current = process.rounds?.find(
-        (r: any) => r.sequence === process.currentRound
-      );
-      if (current) {
-        setCurrentRound(current);
-        // Show preparation screen if round hasn't started
-        if (current.status === 'NOT_STARTED') {
-          setShowPreparation(true);
+    setTimeout(async () => {
+      try {
+        const process = await getHiringProcess(params.id as string);
+        setHiringProcess(process);
+
+        const current = process.rounds?.find(
+          (r: any) => r.sequence === process.currentRound
+        );
+        if (current) {
+          setCurrentRound(current);
+          if (current.status === 'NOT_STARTED') {
+            setShowPreparation(true);
+          }
         }
+      } catch (err) {
+        console.error('Failed to load hiring process inside timeout:', err);
+      } finally {
+        setIsLoading(false); // ✅ Only here
       }
-    } catch (error) {
-      console.error('Failed to load hiring process:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }, 5000); // Simulated loading delay
+  } catch (error) {
+    console.error('Failed to load hiring process:', error);
+  }
+};
+
 
   const handleSkipPreparation = () => {
     setShowPreparation(false);

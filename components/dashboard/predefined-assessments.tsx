@@ -22,10 +22,11 @@ export function PredefinedAssessments() {
   useEffect(() => {
     fetchPredefinedAssessments();
   }, [fetchPredefinedAssessments]);
-
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+console.log(predefinedAssessments)
   const handleStartAssessment = (assessment: any) => {
     if (assessment.isPrime && !user?.isPrime) {
-      // Show upgrade modal or message
+        setShowUpgradeModal(true);
       return;
     }
     setSelectedAssessment(assessment);
@@ -69,6 +70,15 @@ export function PredefinedAssessments() {
 
   return (
     <>
+    {
+      showUpgradeModal && (
+        <AssessmentModal
+          assessment={selectedAssessment}
+          open={showUpgradeModal}
+          onOpenChange={() => setShowUpgradeModal(false)}
+        />
+      )
+    }
       <Card id="predefined-assessments">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

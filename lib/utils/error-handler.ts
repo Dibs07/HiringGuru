@@ -15,7 +15,7 @@ export function handleApiError(error: any) {
       window.location.href = '/login';
       break;
     case 403:
-      toast.error("Access denied. You don't have permission for this action.");
+      toast.error(error.data?.message || 'Access denied. You do not have permission to perform this action.');
       break;
     case 404:
       toast.error('Resource not found.');

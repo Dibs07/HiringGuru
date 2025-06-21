@@ -20,8 +20,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Play, Clock, Target } from 'lucide-react';
+import { Plus, X, Play, Clock, Target, Loader2 } from 'lucide-react';
 import { saveCustomAssessment } from '@/lib/mock-data';
+import { useAssessmentStore } from '@/lib/stores/assessment-store';
 
 interface CustomAssessmentBuilderProps {
   open: boolean;
@@ -29,16 +30,27 @@ interface CustomAssessmentBuilderProps {
   onAssessmentCreated?: () => void;
 }
 
+interface Round {
+  id: number;
+  type: string;
+  duration: number;
+  difficulty: string;
+  topics: string[];
+  description: string;
+}
+
 export function CustomAssessmentBuilder({
   open,
   onOpenChange,
   onAssessmentCreated,
 }: CustomAssessmentBuilderProps) {
+  const { createCustomAssessment } = useAssessmentStore();
   const [assessmentName, setAssessmentName] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
-  const [rounds, setRounds] = useState<any[]>([]);
+  const [rounds, setRounds] = useState<Round[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const roundTypes = [
     {
@@ -103,7 +115,7 @@ export function CustomAssessmentBuilder({
     setRounds(rounds.filter((round) => round.id !== id));
   };
 
-  const updateRound = (id: number, field: string, value: any) => {
+  const updateRound = (id: number, field: keyof Round, value: any) => {
     setRounds(
       rounds.map((round) =>
         round.id === id ? { ...round, [field]: value } : round
@@ -115,46 +127,60 @@ export function CustomAssessmentBuilder({
     return rounds.reduce((sum, round) => sum + (round.duration || 0), 0);
   };
 
-  const saveAssessment = () => {
-    const totalDuration = getTotalDuration();
-    const roundNames = rounds.map((round) => {
-      const roundType = roundTypes.find((rt) => rt.value === round.type);
-      return roundType ? roundType.label : round.type;
-    });
+  const saveAssessment = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    
+    try {
+      const newAssessment = {
+        name: assessmentName,
+        description,
+        difficulty: difficulty.toUpperCase() as 'EASY' | 'MEDIUM' | 'HARD',
+        rounds: rounds.map((round, index) => ({
+          roundType: 'SCREENING',
+          name:
+            roundTypes.find((rt) => rt.value === round.type)?.label ||
+            `Round ${index + 1}`,
+          description:
+            round.description ||
+            roundTypes.find((rt) => rt.value === round.type)?.description ||
+            '',
+          duration: round.duration || 30,
+          sequence: index + 1,
+          config: {
+            topics: round.topics || [],
+            difficulty: round.difficulty || 'medium',
+          },
+        })),
+      };
 
-    const newAssessment = {
-      name: assessmentName,
-      description,
-      difficulty,
-      rounds: roundNames,
-      roundsDetail: rounds.map((round) => ({
-        ...round,
-        name:
-          roundTypes.find((rt) => rt.value === round.type)?.label || round.type,
-      })),
-      totalDuration,
-      isCustom: true,
-    };
+      const savedAssessment = await createCustomAssessment(newAssessment);
 
-    const savedAssessment = saveCustomAssessment(newAssessment);
+      if (onAssessmentCreated) {
+        await onAssessmentCreated();
+      }
 
-    // Reset form
-    setAssessmentName('');
-    setDescription('');
-    setDifficulty('medium');
-    setRounds([]);
-    setShowPreview(false);
+      // Reset form
+      setAssessmentName('');
+      setDescription('');
+      setDifficulty('medium');
+      setRounds([]);
+      setShowPreview(false);
 
-    onAssessmentCreated?.();
-    onOpenChange(false);
-
-    // Start the assessment immediately
-    window.location.href = `/assessment/custom-${savedAssessment.id}/start`;
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to save assessment:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const previewAssessment = () => {
     setShowPreview(true);
   };
+
+  const isFormValid = assessmentName.trim() && description.trim() && rounds.length > 0 && rounds.every(round => round.type);
 
   if (showPreview) {
     return (
@@ -216,9 +242,9 @@ export function CustomAssessmentBuilder({
                             {index + 1}
                           </div>
                           <div>
-                            <h5 className="font-medium">{roundType?.label}</h5>
+                            <h5 className="font-medium">{roundType?.label || round.type}</h5>
                             <p className="text-sm text-gray-600">
-                              {roundType?.description}
+                              {round.description || roundType?.description}
                             </p>
                           </div>
                         </div>
@@ -241,19 +267,37 @@ export function CustomAssessmentBuilder({
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setShowPreview(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreview(false)}
+                disabled={isSaving}
+              >
                 Back to Edit
               </Button>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSaving}
+                >
                   Cancel
                 </Button>
                 <Button
                   onClick={saveAssessment}
+                  disabled={isSaving}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  <Play className="h-4 w-4 mr-2" />
-                  Create & Start Assessment
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Create & Start Assessment
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -284,6 +328,7 @@ export function CustomAssessmentBuilder({
                   value={assessmentName}
                   onChange={(e) => setAssessmentName(e.target.value)}
                   placeholder="e.g., Frontend Developer Challenge"
+                  disabled={isSaving}
                 />
               </div>
 
@@ -295,12 +340,17 @@ export function CustomAssessmentBuilder({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe what this assessment covers and its objectives..."
                   rows={3}
+                  disabled={isSaving}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="difficulty">Overall Difficulty</Label>
-                <Select value={difficulty} onValueChange={setDifficulty}>
+                <Select 
+                  value={difficulty} 
+                  onValueChange={setDifficulty}
+                  disabled={isSaving}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -329,7 +379,11 @@ export function CustomAssessmentBuilder({
                   Add and configure the rounds for your assessment
                 </p>
               </div>
-              <Button onClick={addRound} size="sm">
+              <Button 
+                onClick={addRound} 
+                size="sm"
+                disabled={isSaving}
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Round
               </Button>
@@ -367,6 +421,7 @@ export function CustomAssessmentBuilder({
                             variant="ghost"
                             size="sm"
                             onClick={() => removeRound(round.id)}
+                            disabled={isSaving}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -375,43 +430,32 @@ export function CustomAssessmentBuilder({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Round Type *</Label>
-                            <Select
-                              value={round.type}
-                              onValueChange={(value) => {
-                                updateRound(round.id, 'type', value);
-                                const roundType = roundTypes.find(
-                                  (rt) => rt.value === value
-                                );
-                                if (roundType) {
-                                  updateRound(
-                                    round.id,
-                                    'duration',
-                                    roundType.duration
-                                  );
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select round type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {roundTypes.map((type) => (
-                                  <SelectItem
-                                    key={type.value}
-                                    value={type.value}
-                                  >
-                                    <div>
-                                      <div className="font-medium">
-                                        {type.label}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {type.description}
-                                      </div>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                       <Select
+  value={round.type}
+  onValueChange={(value) => {
+    updateRound(round.id, 'type', value);
+    const roundType = roundTypes.find(rt => rt.value === value);
+    if (roundType) {
+      updateRound(round.id, 'duration', roundType.duration);
+    }
+  }}
+  disabled={isSaving}
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Select round type" />
+  </SelectTrigger>
+  <SelectContent>
+    {roundTypes.map((type) => (
+      <SelectItem key={type.value} value={type.value}>
+        <div className="flex flex-col">
+          <span className="font-medium">{type.label}</span>
+          <span className="text-xs text-gray-500">{type.description}</span>
+        </div>
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
                             {selectedRoundType && (
                               <p className="text-xs text-gray-600">
                                 {selectedRoundType.description}
@@ -428,11 +472,12 @@ export function CustomAssessmentBuilder({
                                 updateRound(
                                   round.id,
                                   'duration',
-                                  Number.parseInt(e.target.value)
+                                  parseInt(e.target.value) || 0
                                 )
                               }
                               min="5"
                               max="180"
+                              disabled={isSaving}
                             />
                           </div>
                         </div>
@@ -444,6 +489,7 @@ export function CustomAssessmentBuilder({
                             onValueChange={(value) =>
                               updateRound(round.id, 'difficulty', value)
                             }
+                            disabled={isSaving}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -460,6 +506,7 @@ export function CustomAssessmentBuilder({
                           <Label>Focus Topics (comma-separated)</Label>
                           <Input
                             placeholder="e.g., JavaScript, React, Algorithms, Problem Solving"
+                            value={round.topics.join(', ')}
                             onChange={(e) =>
                               updateRound(
                                 round.id,
@@ -470,6 +517,20 @@ export function CustomAssessmentBuilder({
                                   .filter((t) => t)
                               )
                             }
+                            disabled={isSaving}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Custom Description (optional)</Label>
+                          <Textarea
+                            placeholder="Override default description for this round..."
+                            value={round.description}
+                            onChange={(e) =>
+                              updateRound(round.id, 'description', e.target.value)
+                            }
+                            disabled={isSaving}
+                            rows={2}
                           />
                         </div>
                       </div>
@@ -495,28 +556,37 @@ export function CustomAssessmentBuilder({
 
           {/* Action Buttons */}
           <div className="flex justify-between gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
             <div className="flex gap-3">
               <Button
                 variant="outline"
                 onClick={previewAssessment}
-                disabled={
-                  !assessmentName || !description || rounds.length === 0
-                }
+                disabled={!isFormValid || isSaving}
               >
                 Preview Assessment
               </Button>
               <Button
                 onClick={saveAssessment}
-                disabled={
-                  !assessmentName || !description || rounds.length === 0
-                }
+                disabled={isSaving}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <Play className="h-4 w-4 mr-2" />
-                Create & Start
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Create & Start
+                  </>
+                )}
               </Button>
             </div>
           </div>

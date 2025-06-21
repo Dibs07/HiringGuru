@@ -12,6 +12,7 @@ interface SubscriptionLimits {
 
 interface SubscriptionState {
   isPrime: boolean;
+  setPlan: (plan: 'monthly' | 'annual') => void;
   plan: string | null;
   limits: SubscriptionLimits;
   usage: {
@@ -50,6 +51,9 @@ const PRIME_LIMITS: SubscriptionLimits = {
 };
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
+  setPlan: (plan) => {
+    set({ plan });
+  },
   isPrime: false,
   plan: null,
   limits: FREE_LIMITS,

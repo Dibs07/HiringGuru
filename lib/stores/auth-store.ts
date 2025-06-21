@@ -45,9 +45,9 @@ export const useAuthStore = create<AuthState>()(
       initializeAuth: async () => {
         try {
           set({ isLoading: true });
-          // const user = await apiService.getProfile()
+          const user = await apiService.getProfile()
           set({
-            // user,
+            user:user.user,
             isAuthenticated: true,
             isLoading: false,
             isInitialized: true,
@@ -75,9 +75,6 @@ export const useAuthStore = create<AuthState>()(
           await apiService.logout();
           set({ user: null, isAuthenticated: false });
           toast.success('Logged out successfully');
-          // Clear all persisted data
-          localStorage.clear();
-          sessionStorage.clear();
           window.location.href = '/';
         } catch (error) {
           handleApiError(error);
@@ -97,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
 
       refreshProfile: async () => {
         try {
-          // const user = await apiService.getProfile()
+          const user = await apiService.getProfile()
           set({
             // user,
             isAuthenticated: true,

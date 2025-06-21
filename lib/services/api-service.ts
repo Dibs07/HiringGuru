@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 class ApiService {
   private baseUrl =
     process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:5000';
@@ -15,12 +17,10 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const error = new Error(
+      toast.error(
         errorData.message || `API Error: ${response.statusText}`
       );
-      (error as any).status = response.status;
-      (error as any).data = errorData;
-      throw error;
+      return;
     }
 
     return response.json();
@@ -80,7 +80,7 @@ class ApiService {
   }
 
   async createCustomAssessment(data: any) {
-    return this.request('/api/custom-assessments/create', {
+    return this.request('/api/custom-assessments/', {
       method: 'POST',
       body: JSON.stringify(data),
     });

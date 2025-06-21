@@ -9,7 +9,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { initializeAuth, isInitialized } = useAuthStore();
 
   useEffect(() => {
-    if (!isInitialized) {
+    if (!isInitialized ) {
       initializeAuth();
     }
   }, [initializeAuth, isInitialized]);

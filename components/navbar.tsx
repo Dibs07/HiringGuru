@@ -54,7 +54,7 @@ export function Navbar() {
 
   const getDisplayName = () => {
     if (!user) return 'User';
-    return user.name || user.email || 'User';
+    return user?.name || user?.email || 'User';
   };
 
   const getInitials = () => {
@@ -203,12 +203,12 @@ export function Navbar() {
                   {isAuthenticated && user && (
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar || '/placeholder.svg'} />
+                        <AvatarImage src={user?.avatar || '/placeholder.svg'} />
                         <AvatarFallback>{getInitials()}</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium">{getDisplayName()}</p>
-                        <p className="text-sm text-gray-600">{user.email}</p>
+                        <p className="text-sm text-gray-600">{user?.email}</p>
                       </div>
                     </div>
                   )}
