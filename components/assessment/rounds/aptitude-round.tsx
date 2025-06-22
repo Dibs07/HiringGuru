@@ -186,19 +186,14 @@ export function AptitudeRound({ onComplete, duration, roundId, difficulty = "MED
       }
 
       const response = await apiService.submitAnswers(submissionPayload)
-
+      console.log("Submission response:", response)
       // Show verdict based on response
       const result = {
         type: "aptitude",
-        score: Number.parseFloat(response.overallScore.replace("%", "")),
-        qualified: Number.parseFloat(response.overallScore.replace("%", "")) >= 60,
-        feedback: response.feedback,
-        detailedResults: response.detailedResults,
-        overallScore: response.overallScore,
         totalQuestions: questions.length,
-        answeredQuestions: Object.keys(answers).length,
+        aiVerdict: response.aiVerdict || "No AI verdict available",
       }
-
+      console.log("Final result:", result)
       onComplete(result)
     } catch (error) {
       handleApiError(error)

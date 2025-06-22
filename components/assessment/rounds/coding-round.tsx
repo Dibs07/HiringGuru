@@ -70,7 +70,7 @@ export function CodingRound({ onComplete, roundId, duration = 45 }: CodingRoundP
       if (boilerPlateCode) {
         try {
           const decodedCode = atob(boilerPlateCode)
-          // setCode(decodedCode)
+           setCode(decodedCode)
         } catch (error) {
           console.error("Error decoding boilerplate code:", error)
           setCode("// Error loading boilerplate code")
