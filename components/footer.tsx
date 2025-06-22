@@ -96,7 +96,7 @@ export function Footer() {
           </div>
 
           {/* Contact & Newsletter */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h4 className="text-lg font-semibold">Stay Updated</h4>
             <div className="space-y-3 text-gray-300 text-sm">
               <div className="flex items-center gap-2">
@@ -124,13 +124,13 @@ export function Footer() {
                 <Button size="sm">Subscribe</Button>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <Separator className="my-8 bg-gray-700" />
 
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
-          <p>&copy; 2024 Hiring Guru. All rights reserved.</p>
+          <p>&copy; 2025 Hiring Guru. All rights reserved.</p>
           <p>Made with ❤️ for job seekers worldwide</p>
         </div>
       </div>

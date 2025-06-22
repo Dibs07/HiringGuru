@@ -46,7 +46,7 @@ export function Navbar() {
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-    { name: 'Practice', href: '/practice', icon: BookOpen },
+    // { name: 'Practice', href: '/practice', icon: BookOpen },
     { name: 'About', href: '/#about' },
     { name: 'Services', href: '/#services' },
     { name: 'Pricing', href: '/#pricing' },
@@ -144,20 +144,20 @@ export function Navbar() {
                       Profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  {/* <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
-                  </DropdownMenuItem>
-                  {!isPrime && (
+                  </DropdownMenuItem> */}
+                  {/* {!isPrime && (
                     <DropdownMenuItem asChild>
                       <Link href="/upgrade" className="flex items-center">
                         <Crown className="mr-2 h-4 w-4" />
                         Upgrade to Prime
                       </Link>
                     </DropdownMenuItem>
-                  )}
+                  )} */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
