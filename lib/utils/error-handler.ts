@@ -6,7 +6,7 @@ export function handleApiError(error: any) {
 
   switch (status) {
     case 400:
-      toast.error(`Bad Request: ${message}`)
+      // toast.error(`Bad Request: ${message}`)
       break
     case 401:
       toast.error("Authentication required. Please log in again.")
@@ -14,7 +14,7 @@ export function handleApiError(error: any) {
       window.location.href = "/login"
       break
     case 403:
-      toast.error("Access denied. You don't have permission to perform this action.")
+      // toast.error("Access denied. You don't have permission to perform this action.")
       break
     case 404:
       toast.error("Resource not found. The requested item may have been deleted.")

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Mic, MicOff, Volume2, Play, MessageCircle, CheckCircle, AlertCircle, Users } from "lucide-react"
+import { apiService } from "@/lib/services/api-service"
 
 interface InterviewRoundProps {
   onComplete: (result: any) => void
@@ -128,14 +129,11 @@ export default function InterviewRound({ onComplete, roundId, userName, userRole
 
   const loadConversationHistory = async (sessionId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/conversation/${sessionId}`)
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Conversation history:", data)
-        // Process and set conversation history if available
-        if (data.conversation && Array.isArray(data.conversation)) {
-          setConversation(data.conversation)
-        }
+      const data = await apiService.getConversation(sessionId)
+      console.log("Conversation history:", data)
+      // Process and set conversation history if available
+      if (data.conversation && Array.isArray(data.conversation)) {
+        setConversation(data.conversation)
       }
     } catch (error) {
       console.error("Failed to load conversation history:", error)
@@ -199,24 +197,11 @@ export default function InterviewRound({ onComplete, roundId, userName, userRole
   const startInterview = async () => {
     setIsLoading(true)
     try {
-      // Fixed: Use POST method as specified in requirements
-      const response = await fetch("http://localhost:8000/greeting", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_name: userName,
-          user_role: userRole,
-          round_id: roundId,
-        }),
+      const data = await apiService.startInterview({
+        user_name: userName,
+        user_role: userRole,
+        round_id: roundId,
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to start interview")
-      }
-
-      const data = await response.json()
       
       setSessionId(data.session_id)
       localStorage.setItem("interview_session_id", data.session_id)
@@ -255,23 +240,11 @@ export default function InterviewRound({ onComplete, roundId, userName, userRole
 
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:8000/ai-response", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          question_number: 1,
-          user_transcript: " ", // Empty transcript for first question
-        }),
+      const data = await apiService.getAIResponse({
+        session_id: sessionId,
+        question_number: 1,
+        user_transcript: " ", // Empty transcript for first question
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to get first question")
-      }
-
-      const data = await response.json()
 
       // Add AI question to conversation
       const aiMessage: ConversationMessage = {
@@ -311,23 +284,11 @@ export default function InterviewRound({ onComplete, roundId, userName, userRole
     setIsProcessingResponse(true)
     
     try {
-      const response = await fetch("http://localhost:8000/ai-response", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          question_number: currentQuestionNumber,
-          user_transcript: userTranscript,
-        }),
+      const data = await apiService.getAIResponse({
+        session_id: sessionId,
+        question_number: currentQuestionNumber,
+        user_transcript: userTranscript,
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to get AI response")
-      }
-
-      const data = await response.json()
 
       // Check if interview is complete (you might need to adjust this logic based on your backend)
       if (data.is_complete || data.question_text.toLowerCase().includes("interview complete")) {

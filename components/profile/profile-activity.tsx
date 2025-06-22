@@ -90,7 +90,7 @@ export function ProfileActivity() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {assessmentHistory.map((assessment) => (
+            {assessmentHistory?.map((assessment) => (
               <div
                 key={assessment.id}
                 className="border rounded-lg p-4 space-y-3"

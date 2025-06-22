@@ -70,7 +70,7 @@ const loadHiringProcess = async () => {
     );
   }
 
-  if (!hiringProcess) {
+  if (!hiringProcess && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

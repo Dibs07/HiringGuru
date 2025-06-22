@@ -46,14 +46,20 @@ export const useAuthStore = create<AuthState>()(
       initializeAuth: async () => {
         try {
           set({ isLoading: true });
-          const user = await apiService.getProfile()
+          const response = await apiService.getProfile()
+          console.log('Auth initialized with user:', response.user);
           set({
-            user:user.user,
+            user: {
+              ...response.user,
+              // Ensure profileCompleted is explicitly set
+              profileCompleted: response.user.profileCompleted === true
+            },
             isAuthenticated: true,
             isLoading: false,
             isInitialized: true,
           });
         } catch (error: any) {
+          console.log('Auth initialization failed:', error);
           if (error.status !== 401) {
             handleApiError(error);
           }
@@ -95,12 +101,18 @@ export const useAuthStore = create<AuthState>()(
 
       refreshProfile: async () => {
         try {
-          const user = await apiService.getProfile()
+          const response = await apiService.getProfile()
+          console.log('Profile refreshed:', response.user);
           set({
-            // user,
+            user: {
+              ...response.user,
+              // Ensure profileCompleted is explicitly set
+              profileCompleted: response.user.profileCompleted === true
+            },
             isAuthenticated: true,
           });
         } catch (error) {
+          console.log('Profile refresh failed:', error);
           handleApiError(error);
           set({ user: null, isAuthenticated: false });
         }

@@ -49,22 +49,30 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
     try {
       setIsLoading(true)
       const username = user?.email?.split("@")[0] || user?.name?.toLowerCase().replace(/\s+/g, "")
+      console.log('Fetching GitHub data for username:', username);
+      
       if (username) {
         const response = await apiService.getGitHubProfile(username)
+        console.log('GitHub API response:', response);
         setGithubData(response)
 
-        // ✅ Only update empty fields
-        setFormData((prev) => ({
-          ...prev,
-          fullName: prev.fullName || response.profile.name,
-          skills: prev.skills.length ? prev.skills : response.skills || [],
-          location: prev.location || response.profile.location,
-          bio: prev.bio || response.profile.bio,
-        }))
+        // Only update fields if they are currently empty AND GitHub data is available
+        setFormData((prev) => {
+          const updated = {
+            ...prev,
+            fullName: prev.fullName || (response.profile?.name || ""),
+            skills: prev.skills.length ? prev.skills : (response.skills || []),
+            location: prev.location || (response.profile?.location || ""),
+            bio: prev.bio || (response.profile?.bio || ""),
+          };
+          console.log('Updated form data with GitHub info:', updated);
+          return updated;
+        })
       }
     } catch (error) {
       console.error("Failed to fetch GitHub data:", error)
       toast.error("Could not fetch GitHub profile data")
+      // Don't update form data if there's an error
     } finally {
       setIsLoading(false)
     }
@@ -116,6 +124,7 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    console.log('Submitting onboarding form with data:', formData);
 
     try {
       if (githubData) {
@@ -130,11 +139,13 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
           targetRole: formData.dreamJobRole,
           dreamCompanies: formData.dreamCompanies,
         }
+        console.log('Submitting GitHub analysis:', analysisPayload);
 
         await apiService.submitUserAnalysis(analysisPayload)
         await refreshProfile()
       }
 
+      console.log('Onboarding completed successfully');
       onComplete(formData)
       toast.success("Profile setup completed successfully!")
     } catch (error) {
@@ -227,9 +238,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   </Label>
                   <Input
                     id="fullName"
-                    value={formData.fullName}
+                    value={formData.fullName || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
                     placeholder="Enter your full name"
+                    disabled={false}
                     required
                   />
                 </motion.div>
@@ -246,9 +258,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   </Label>
                   <Input
                     id="targetRole"
-                    value={formData.targetRole}
+                    value={formData.targetRole || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, targetRole: e.target.value }))}
                     placeholder="e.g., Software Engineer, Product Manager"
+                    disabled={false}
                     required
                   />
                 </motion.div>
@@ -262,9 +275,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   <Label htmlFor="experience">Years of Experience</Label>
                   <Input
                     id="experience"
-                    value={formData.experience}
+                    value={formData.experience || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, experience: e.target.value }))}
                     placeholder="e.g., 2-3 years, Fresh Graduate"
+                    disabled={false}
                   />
                 </motion.div>
 
@@ -280,9 +294,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   </Label>
                   <Input
                     id="currentCompany"
-                    value={formData.currentCompany}
+                    value={formData.currentCompany || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, currentCompany: e.target.value }))}
                     placeholder="e.g., Google, Microsoft, Startup"
+                    disabled={false}
                   />
                 </motion.div>
 
@@ -295,9 +310,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   <Label htmlFor="education">Education Background</Label>
                   <Input
                     id="education"
-                    value={formData.education}
+                    value={formData.education || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, education: e.target.value }))}
                     placeholder="e.g., B.Tech Computer Science, MBA"
+                    disabled={false}
                   />
                 </motion.div>
 
@@ -313,9 +329,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                   </Label>
                   <Input
                     id="location"
-                    value={formData.location}
+                    value={formData.location || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                     placeholder="e.g., San Francisco, Remote"
+                    disabled={false}
                   />
                 </motion.div>
               </div>
@@ -330,11 +347,12 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                 <div className="flex gap-2">
                   <Input
                     id="skills"
-                    value={skillInput}
+                    value={skillInput || ""}
                     onChange={(e) => setSkillInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, "skill")}
                     placeholder="Type a skill and press Enter"
                     className="flex-1"
+                    disabled={false}
                   />
                   <Button type="button" onClick={handleAddSkill} size="sm">
                     <Plus className="h-4 w-4" />
@@ -368,11 +386,12 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                 <div className="flex gap-2">
                   <Input
                     id="dreamCompanies"
-                    value={companyInput}
+                    value={companyInput || ""}
                     onChange={(e) => setCompanyInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, "company")}
                     placeholder="Type a company and press Enter"
                     className="flex-1"
+                    disabled={false}
                   />
                   <Button type="button" onClick={handleAddCompany} size="sm">
                     <Plus className="h-4 w-4" />
@@ -405,9 +424,10 @@ export function UserOnboarding({ onComplete, onSkip }: UserOnboardingProps) {
                 <Label htmlFor="dreamJobRole">Dream Job Role</Label>
                 <Input
                   id="dreamJobRole"
-                  value={formData.dreamJobRole}
+                  value={formData.dreamJobRole || ""}
                   onChange={(e) => setFormData((prev) => ({ ...prev, dreamJobRole: e.target.value }))}
                   placeholder="e.g., Senior Frontend Developer, Tech Lead"
+                  disabled={false}
                   required
                 />
               </motion.div>

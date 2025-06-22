@@ -65,7 +65,7 @@ class ApiService {
 
   // GitHub Integration
   async getGitHubProfile(username: string) {
-    return this.request(`/api/user/analysis/${username}`)
+    return this.request(`/api/user/github/${username}`)
   }
 
   async submitUserAnalysis(data: any) {
@@ -114,7 +114,7 @@ class ApiService {
   }
 
   async createCustomAssessment(data: any) {
-    return this.request("/api/custom-assessments/create", {
+    return this.request("/api/custom-assessments", {
       method: "POST",
       body: JSON.stringify(data),
     })

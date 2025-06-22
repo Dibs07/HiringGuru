@@ -155,7 +155,7 @@ export function CustomAssessments() {
                         <Play className="h-4 w-4 mr-1" />
                         Start
                       </Button>
-                      <Button
+                      {/* <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditAssessment(assessment)}
@@ -170,7 +170,7 @@ export function CustomAssessments() {
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 </div>

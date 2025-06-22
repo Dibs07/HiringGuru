@@ -7,6 +7,7 @@ import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { RecentAssessments } from '@/components/dashboard/recent-assessments';
 import { PredefinedAssessments } from '@/components/dashboard/predefined-assessments';
 import { CustomAssessments } from '@/components/dashboard/custom-assessments';
+import { AssessmentGenerator } from '@/components/assessment/assessment-generator';
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -43,8 +44,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <StatsOverview />
-
+        {/* <StatsOverview /> */}
+    <AssessmentGenerator />
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <RecentAssessments />

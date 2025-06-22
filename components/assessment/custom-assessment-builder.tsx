@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
 import { useAssessmentStore } from "@/lib/stores/assessment-store"
 import { toast } from "sonner"
+import { useAuthStore } from "@/lib/stores/auth-store"
 
 interface CustomAssessmentBuilderProps {
   open: boolean
@@ -37,6 +38,7 @@ export function CustomAssessmentBuilder({
   editingAssessment,
 }: CustomAssessmentBuilderProps) {
   const { createCustomAssessment, updateCustomAssessment, deleteCustomAssessment, isLoading } = useAssessmentStore()
+  const { user } = useAuthStore()
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -109,8 +111,7 @@ export function CustomAssessmentBuilder({
     const totalDuration = formData.rounds.reduce((sum, round) => sum + round.duration, 0)
     const assessmentData = {
       ...formData,
-      totalDuration,
-      roundCount: formData.rounds.length,
+      userId: user?.id,
     }
 
     try {
