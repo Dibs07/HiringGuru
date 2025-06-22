@@ -6,14 +6,50 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle, XCircle, Clock, MessageSquare, Trophy, AlertTriangle } from "lucide-react"
 
+interface AIVerdict {
+  overallScore: string
+  feedback: {
+    strengths: string[]
+    improvements: string[]
+    detailedFeedback: string
+  }
+  detailedResults: Array<{
+    question: string
+    user_answer: string
+    correct_answer: string
+    is_correct: boolean
+  }>
+}
+
 interface RoundResultsProps {
-  result: any
+  result: {
+    detailedResults: { question: string; user_answer: string; correct_answer: string; is_correct: boolean }[] | undefined
+    type: string
+    score?: number
+    qualified?: boolean
+    questionsAnswered?: number
+    totalQuestions?: number
+    conversation?: Array<{ type: string; text: string }>
+    feedback?: any
+    userFeedback?: string
+    aiVerdict?: AIVerdict
+  }
   onNext: () => void
   onBack?: () => void
   isLastRound: boolean
 }
 
 export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResultsProps) {
+  // Parse score from aiVerdict if available, otherwise use result.score
+  const getScore = () => {
+    if (result.aiVerdict?.overallScore) {
+      return parseFloat(result.aiVerdict.overallScore.replace('%', ''))
+    }
+    return result.score || 0
+  }
+
+  const score = getScore()
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600"
     if (score >= 60) return "text-yellow-600"
@@ -24,6 +60,14 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
     if (score >= 80) return "bg-green-100 text-green-800"
     if (score >= 60) return "bg-yellow-100 text-yellow-800"
     return "bg-red-100 text-red-800"
+  }
+
+  const getQualificationStatus = () => {
+    if (result.qualified !== undefined) {
+      return result.qualified ? "Qualified" : "Needs Improvement"
+    }
+    // Determine based on score
+    return score >= 60 ? "Qualified" : "Needs Improvement"
   }
 
   const renderInterviewResults = () => {
@@ -67,13 +111,16 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
   }
 
   const renderDetailedResults = () => {
-    if (!result.detailedResults) return null
+    // Use aiVerdict detailedResults if available, otherwise fallback to result.detailedResults
+    const detailedResults = result.aiVerdict?.detailedResults || result.detailedResults
+    
+    if (!detailedResults || detailedResults.length === 0) return null
 
     return (
       <div className="space-y-4">
         <h4 className="font-medium">Question-wise Results:</h4>
         <div className="space-y-3 max-h-60 overflow-y-auto">
-          {result.detailedResults.map((item: any, index: number) => (
+          {detailedResults.map((item: any, index: number) => (
             <div key={index} className="p-3 border rounded-lg">
               <div className="flex items-start gap-3">
                 <div className="mt-1">
@@ -105,15 +152,18 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
   }
 
   const renderFeedback = () => {
-    if (!result.feedback) return null
+    // Use aiVerdict feedback if available, otherwise fallback to result.feedback
+    const feedbackData = result.aiVerdict?.feedback || result.feedback
+    
+    if (!feedbackData) return null
 
-    const feedback = typeof result.feedback === "string" ? { detailedFeedback: result.feedback } : result.feedback
+    const feedback = typeof feedbackData === "string" ? { detailedFeedback: feedbackData } : feedbackData
 
     return (
       <div className="space-y-4">
         <h4 className="font-medium">Performance Feedback:</h4>
 
-        {feedback.strengths && (
+        {feedback.strengths && feedback.strengths.length > 0 && (
           <div className="p-3 bg-green-50 rounded-lg">
             <h5 className="font-medium text-green-800 mb-2">Strengths:</h5>
             <ul className="text-sm text-green-700 space-y-1">
@@ -127,7 +177,7 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
           </div>
         )}
 
-        {feedback.improvements && (
+        {feedback.improvements && feedback.improvements.length > 0 && (
           <div className="p-3 bg-yellow-50 rounded-lg">
             <h5 className="font-medium text-yellow-800 mb-2">Areas for Improvement:</h5>
             <ul className="text-sm text-yellow-700 space-y-1">
@@ -151,6 +201,37 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
     )
   }
 
+  const renderScoreBreakdown = () => {
+    if (!result.aiVerdict?.feedback?.detailedFeedback) return null
+
+    // Extract score breakdown from detailed feedback if it contains performance data
+    const detailedFeedback = result.aiVerdict.feedback.detailedFeedback
+    const lines = detailedFeedback.split('\n')
+    
+    // Look for lines that contain score information
+    const scoreLines = lines.filter(line => 
+      line.includes('/') && (line.includes('%') || line.includes('accuracy'))
+    )
+
+    if (scoreLines.length === 0) return null
+
+    return (
+      <div className="space-y-4">
+        <h4 className="font-medium">Performance Breakdown:</h4>
+        <div className="grid gap-3">
+          {scoreLines.map((line, index) => {
+            const trimmedLine = line.trim().replace(/^-\s*/, '')
+            return (
+              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-700">{trimmedLine}</p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader className="text-center">
@@ -165,26 +246,27 @@ export function RoundResults({ result, onNext, onBack, isLastRound }: RoundResul
         {/* Score Overview */}
         <div className="text-center space-y-4">
           <div className="space-y-2">
-            <div className={`text-6xl font-bold ${getScoreColor(result.score || 0)}`}>
-              {Math.round(result.score || 0)}%
+            <div className={`text-6xl font-bold ${getScoreColor(score)}`}>
+              {Math.round(score)}%
             </div>
-            <Badge className={getScoreBadgeColor(result.score || 0)}>
-              {result.qualified ? "Qualified" : "Needs Improvement"}
+            <Badge className={getScoreBadgeColor(score)}>
+              {getQualificationStatus()}
             </Badge>
           </div>
 
           <div className="max-w-md mx-auto">
             <div className="flex justify-between text-sm text-gray-600 mb-1">
               <span>Performance</span>
-              <span>{Math.round(result.score || 0)}%</span>
+              <span>{Math.round(score)}%</span>
             </div>
-            <Progress value={result.score || 0} className="h-3" />
+            <Progress value={score} className="h-3" />
           </div>
         </div>
 
         {/* Type-specific Results */}
         {renderInterviewResults()}
         {renderDetailedResults()}
+        {renderScoreBreakdown()}
         {renderFeedback()}
 
         {/* User Feedback */}
